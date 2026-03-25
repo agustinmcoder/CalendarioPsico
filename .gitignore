@@ -1,0 +1,16 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Variables de entorno (NUNCA subir al repo)
+.env
+.env.local
+.env.production
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+*.swp

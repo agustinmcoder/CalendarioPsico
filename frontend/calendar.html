@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Psico Agenda — Calendario</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" />
+  <style>
+    .calendar-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; box-shadow: var(--shadow); }
+    #calendar { min-height: 600px; }
+    .event-session  { background-color: #C4815A !important; }
+    .event-personal { background-color: #7A8FA6 !important; }
+    .event-cancelled { background-color: #C0A898 !important; text-decoration: line-through; opacity: 0.7; }
+    .event-completed { background-color: #6B9E70 !important; }
+    .recurrence-options { display: none; margin-top: 12px; padding: 16px; background: var(--primary-xlight); border-radius: var(--radius-sm); border: 1px solid var(--primary-light); }
+    .recurrence-options.visible { display: block; }
+    .delete-options { display: none; padding: 14px; background: var(--danger-light); border-radius: var(--radius-sm); border: 1px solid #EBC0BF; margin-bottom: 16px; }
+    .delete-options.visible { display: flex; flex-direction: column; gap: 8px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <h1>🌿 Psico Agenda</h1>
+        <p>Panel de organización</p>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="calendar.html" class="active">
+          <span class="nav-icon">📅</span> Calendario
+        </a>
+        <a href="patients.html">
+          <span class="nav-icon">👥</span> Pacientes
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" id="logout-btn" style="color: var(--sidebar-muted); font-size:0.8rem;">Cerrar sesión</a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-content">
+      <header class="page-header">
+        <h2 id="page-title">Calendario</h2>
+        <div class="page-header-actions">
+          <button class="btn btn-primary" id="btn-new-event">
+            + Nueva sesión / evento
+          </button>
+        </div>
+      </header>
+
+      <div class="page-body">
+        <div class="calendar-wrap">
+          <div id="calendar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Crear/Editar sesión -->
+  <div class="modal-backdrop" id="event-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">Nueva sesión</h3>
+        <button class="modal-close" id="close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Opciones de eliminación (sólo en edición de recurrentes) -->
+        <div class="delete-options" id="delete-options">
+          <p style="font-size:0.85rem;font-weight:600;color:var(--danger);margin-bottom:4px;">¿Qué sesiones eliminar?</p>
+          <label class="form-check">
+            <input type="radio" name="delete_scope" value="single" checked />
+            <span>Solo esta sesión</span>
+          </label>
+          <label class="form-check">
+            <input type="radio" name="delete_scope" value="following" />
+            <span>Esta y todas las siguientes</span>
+          </label>
+        </div>
+
+        <form id="event-form" autocomplete="off">
+          <!-- Tipo de evento -->
+          <div class="form-group">
+            <label class="form-label">Tipo de evento</label>
+            <div style="display:flex;gap:16px;">
+              <label class="form-check">
+                <input type="radio" name="event_type" value="session" checked id="type-session" />
+                <span>Sesión con paciente</span>
+              </label>
+              <label class="form-check">
+                <input type="radio" name="event_type" value="personal" id="type-personal" />
+                <span>Evento personal</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Paciente (solo si es sesión) -->
+          <div class="form-group" id="patient-group">
+            <label class="form-label" for="patient-select">Paciente</label>
+            <select id="patient-select" class="form-control">
+              <option value="">— Seleccionar paciente —</option>
+            </select>
+          </div>
+
+          <!-- Título (solo si es personal o si quiere sobrescribir) -->
+          <div class="form-group" id="title-group">
+            <label class="form-label" for="event-title">Título</label>
+            <input type="text" id="event-title" class="form-control" placeholder="Ej: Supervisión, Almuerzo..." />
+          </div>
+
+          <!-- Fecha y hora -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="event-date">Fecha</label>
+              <input type="date" id="event-date" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hora</label>
+              <div style="display:flex;gap:8px;">
+                <input type="time" id="event-start" class="form-control" required placeholder="Inicio" />
+                <input type="time" id="event-end" class="form-control" required placeholder="Fin" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Estado (solo en edición) -->
+          <div class="form-group" id="status-group" style="display:none;">
+            <label class="form-label" for="event-status">Estado</label>
+            <select id="event-status" class="form-control">
+              <option value="scheduled">Programada</option>
+              <option value="completed">Realizada</option>
+              <option value="cancelled">Cancelada</option>
+            </select>
+          </div>
+
+          <!-- Recurrencia (solo en creación de sesiones) -->
+          <div id="recurrence-wrap">
+            <label class="form-check" style="margin-bottom:10px;">
+              <input type="checkbox" id="is-recurring" />
+              <span>Sesión recurrente</span>
+            </label>
+
+            <div class="recurrence-options" id="recurrence-options">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Frecuencia</label>
+                  <select id="recurrence-type" class="form-control">
+                    <option value="weekly">Semanal (cada 7 días)</option>
+                    <option value="biweekly">Quincenal (cada 14 días)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Hasta (opcional)</label>
+                  <input type="date" id="recurrence-end" class="form-control" />
+                </div>
+              </div>
+              <p style="font-size:0.78rem;color:var(--text-muted);">
+                Si no indicás fecha de fin, se crearán sesiones por 1 año.
+              </p>
+            </div>
+          </div>
+
+          <!-- Notas -->
+          <div class="form-group" style="margin-top:12px;">
+            <label class="form-label" for="event-notes">Notas (opcional)</label>
+            <textarea id="event-notes" class="form-control" rows="2" placeholder="Observaciones para esta sesión..."></textarea>
+          </div>
+
+          <input type="hidden" id="edit-session-id" value="" />
+          <input type="hidden" id="edit-is-recurring" value="false" />
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger btn-sm" id="btn-delete-event" style="margin-right:auto;display:none;">
+          Eliminar
+        </button>
+        <button class="btn btn-ghost" id="btn-cancel-modal">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-event">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="js/calendar.js"></script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Psico Agenda — Pacientes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .patients-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .patient-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: box-shadow var(--transition), border-color var(--transition), transform 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .patient-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary-light);
+      transform: translateY(-2px);
+    }
+    .patient-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .patient-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .patient-name { font-size: 1rem; font-weight: 600; }
+    .patient-meta { font-size: 0.82rem; color: var(--text-muted); }
+    .patient-stats {
+      display: flex;
+      gap: 12px;
+    }
+    .patient-stat {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      text-align: center;
+    }
+    .patient-stat .stat-value {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .patient-stat .stat-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .patient-stat.pending .stat-value { color: var(--danger); }
+    .search-area {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      align-items: center;
+    }
+    .search-area .search-box { flex: 1; max-width: 400px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <h1>🌿 Psico Agenda</h1>
+        <p>Panel de organización</p>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="calendar.html">
+          <span class="nav-icon">📅</span> Calendario
+        </a>
+        <a href="patients.html" class="active">
+          <span class="nav-icon">👥</span> Pacientes
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" id="logout-btn" style="color: var(--sidebar-muted); font-size:0.8rem;">Cerrar sesión</a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-content">
+      <header class="page-header">
+        <h2>Pacientes</h2>
+        <div class="page-header-actions">
+          <button class="btn btn-primary" id="btn-new-patient">+ Nuevo paciente</button>
+        </div>
+      </header>
+
+      <div class="page-body">
+        <div class="search-area">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" class="form-control" placeholder="Buscar paciente..." />
+          </div>
+          <span id="patient-count" style="font-size:0.85rem;color:var(--text-muted);"></span>
+        </div>
+
+        <div class="patients-grid" id="patients-grid">
+          <!-- Cards generados por JS -->
+        </div>
+
+        <div class="empty-state" id="empty-state" style="display:none;">
+          <div class="empty-icon">👥</div>
+          <h3>No hay pacientes todavía</h3>
+          <p>Hacé click en "Nuevo paciente" para agregar el primero.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Nuevo/Editar paciente -->
+  <div class="modal-backdrop" id="patient-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="patient-modal-title">Nuevo paciente</h3>
+        <button class="modal-close" id="close-patient-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="patient-form" autocomplete="off">
+          <div class="form-row">
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label" for="p-name">Nombre completo *</label>
+              <input type="text" id="p-name" class="form-control" placeholder="Ej: María González" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="p-start-date">Inicio del tratamiento</label>
+              <input type="date" id="p-start-date" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="p-frequency">Frecuencia</label>
+              <select id="p-frequency" class="form-control">
+                <option value="">— Sin definir —</option>
+                <option value="weekly">Semanal</option>
+                <option value="biweekly">Quincenal</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="p-price">Precio por sesión ($)</label>
+              <input type="number" id="p-price" class="form-control" placeholder="0" min="0" step="100" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="p-phone">Teléfono</label>
+              <input type="tel" id="p-phone" class="form-control" placeholder="+54 11 ..." />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-email">Email</label>
+            <input type="email" id="p-email" class="form-control" placeholder="paciente@email.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-notes">Notas rápidas</label>
+            <textarea id="p-notes" class="form-control" rows="2" placeholder="Observaciones generales..."></textarea>
+          </div>
+          <input type="hidden" id="p-edit-id" value="" />
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger btn-sm" id="btn-delete-patient" style="margin-right:auto;display:none;">
+          Eliminar paciente
+        </button>
+        <button class="btn btn-ghost" id="btn-cancel-patient">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-patient">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/patients.js"></script>
+</body>
+</html>

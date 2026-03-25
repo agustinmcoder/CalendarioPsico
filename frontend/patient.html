@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Psico Agenda — Paciente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <!-- Quill editor -->
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+  <style>
+    .patient-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .info-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+    }
+    .info-block .info-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .info-block .info-value {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .breadcrumb a { color: var(--primary); }
+    .breadcrumb span { color: var(--text); font-weight: 600; }
+
+    .history-toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .payment-row-paid td { opacity: 0.6; }
+    .payment-row-paid .badge-success { opacity: 1; }
+
+    .monthly-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .month-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+    }
+    .month-card h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      text-transform: capitalize;
+    }
+    .month-stat {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      padding: 3px 0;
+      color: var(--text-muted);
+    }
+    .month-stat strong { color: var(--text); }
+    .month-stat.pending strong { color: var(--danger); }
+    .month-stat.paid strong { color: var(--success); }
+
+    .saving-indicator {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+    .saving-indicator.visible { display: flex; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <h1>🌿 Psico Agenda</h1>
+        <p>Panel de organización</p>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="calendar.html">
+          <span class="nav-icon">📅</span> Calendario
+        </a>
+        <a href="patients.html" class="active">
+          <span class="nav-icon">👥</span> Pacientes
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" id="logout-btn" style="color: var(--sidebar-muted); font-size:0.8rem;">Cerrar sesión</a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-content">
+      <header class="page-header">
+        <div>
+          <div class="breadcrumb">
+            <a href="patients.html">← Pacientes</a>
+            <span>/</span>
+            <span id="patient-name-header">Cargando...</span>
+          </div>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-outline btn-sm" id="btn-edit-patient">Editar datos</button>
+        </div>
+      </header>
+
+      <div class="page-body">
+
+        <!-- Info rápida del paciente -->
+        <div class="patient-info-grid" id="patient-info-grid">
+          <!-- Generado por JS -->
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="history">Historia Clínica</button>
+          <button class="tab-btn" data-tab="sessions">Sesiones y Pagos</button>
+          <button class="tab-btn" data-tab="monthly">Resumen Mensual</button>
+        </div>
+
+        <!-- Tab: Historia Clínica -->
+        <div class="tab-panel active" id="tab-history">
+          <div class="history-toolbar">
+            <span style="font-weight:600;font-size:0.9rem;">Historia Clínica</span>
+            <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
+              <span class="saving-indicator" id="saving-indicator">
+                <span class="spinner" style="width:14px;height:14px;"></span> Guardando...
+              </span>
+              <button class="btn btn-ghost btn-sm" id="btn-import-docx">
+                📂 Importar .docx
+              </button>
+              <button class="btn btn-outline btn-sm" id="btn-export-docx">
+                ⬇ Exportar .docx
+              </button>
+            </div>
+            <input type="file" id="docx-file-input" accept=".docx" style="display:none;" />
+          </div>
+          <div id="quill-editor"></div>
+        </div>
+
+        <!-- Tab: Sesiones y Pagos -->
+        <div class="tab-panel" id="tab-sessions">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="font-size:0.95rem;font-weight:600;">Sesiones</h3>
+          </div>
+          <div class="table-wrapper">
+            <table id="sessions-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Estado sesión</th>
+                  <th>Monto</th>
+                  <th>Pago</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="sessions-tbody">
+                <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px;">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab: Resumen Mensual -->
+        <div class="tab-panel" id="tab-monthly">
+          <div style="margin-bottom:16px;">
+            <h3 style="font-size:0.95rem;font-weight:600;">Resumen por mes</h3>
+          </div>
+          <div class="monthly-summary" id="monthly-summary">
+            <!-- Generado por JS -->
+          </div>
+          <div class="empty-state" id="monthly-empty" style="display:none;">
+            <div class="empty-icon">📊</div>
+            <h3>Sin datos todavía</h3>
+            <p>El resumen mensual aparecerá cuando haya sesiones registradas.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Editar paciente -->
+  <div class="modal-backdrop" id="patient-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Editar paciente</h3>
+        <button class="modal-close" id="close-patient-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="patient-form" autocomplete="off">
+          <div class="form-group">
+            <label class="form-label" for="p-name">Nombre completo *</label>
+            <input type="text" id="p-name" class="form-control" required />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="p-start-date">Inicio del tratamiento</label>
+              <input type="date" id="p-start-date" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="p-frequency">Frecuencia</label>
+              <select id="p-frequency" class="form-control">
+                <option value="">— Sin definir —</option>
+                <option value="weekly">Semanal</option>
+                <option value="biweekly">Quincenal</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="p-price">Precio por sesión ($)</label>
+              <input type="number" id="p-price" class="form-control" min="0" step="100" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="p-phone">Teléfono</label>
+              <input type="tel" id="p-phone" class="form-control" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-email">Email</label>
+            <input type="email" id="p-email" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-notes">Notas rápidas</label>
+            <textarea id="p-notes" class="form-control" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-cancel-patient">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-patient">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Editar pago -->
+  <div class="modal-backdrop" id="payment-modal">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header">
+        <h3>Registrar pago</h3>
+        <button class="modal-close" id="close-payment-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="payment-form">
+          <div class="form-group">
+            <label class="form-label">Sesión</label>
+            <p id="payment-session-info" style="font-size:0.88rem;color:var(--text-muted);padding:8px 0;"></p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="pay-amount">Monto ($)</label>
+              <input type="number" id="pay-amount" class="form-control" min="0" step="100" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="pay-status">Estado</label>
+              <select id="pay-status" class="form-control">
+                <option value="pending">Pendiente</option>
+                <option value="paid">Pagado</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="pay-date">Fecha de pago</label>
+            <input type="date" id="pay-date" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="pay-notes">Notas</label>
+            <input type="text" id="pay-notes" class="form-control" placeholder="Opcional..." />
+          </div>
+          <input type="hidden" id="pay-id" value="" />
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-cancel-payment">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-payment">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://unpkg.com/html-docx-js@0.3.1/dist/html-docx.js"></script>
+  <script src="js/patient.js"></script>
+</body>
+</html>
