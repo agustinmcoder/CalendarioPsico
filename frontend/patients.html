@@ -25,92 +25,65 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      position: relative;
     }
-    .patient-card:hover {
-      box-shadow: var(--shadow-md);
-      border-color: var(--primary-light);
-      transform: translateY(-2px);
-    }
-    .patient-card-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-    }
+    .patient-card:hover { box-shadow: var(--shadow-md); border-color: var(--primary-light); transform: translateY(-2px); }
+    .patient-card-header { display: flex; align-items: flex-start; gap: 12px; }
     .patient-avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--primary-light);
-      color: var(--primary-dark);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.1rem;
-      flex-shrink: 0;
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--primary-light); color: var(--primary-dark);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1.1rem; flex-shrink: 0;
     }
     .patient-name { font-size: 1rem; font-weight: 600; }
     .patient-meta { font-size: 0.82rem; color: var(--text-muted); }
-    .patient-stats {
-      display: flex;
-      gap: 12px;
-    }
+    .patient-stats { display: flex; gap: 12px; }
     .patient-stat {
-      flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 10px 12px;
-      text-align: center;
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 12px; text-align: center;
     }
-    .patient-stat .stat-value {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .patient-stat .stat-label {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
+    .patient-stat .stat-value { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .patient-stat .stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
     .patient-stat.pending .stat-value { color: var(--danger); }
-    .search-area {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-      align-items: center;
-    }
+    .search-area { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; flex-wrap: wrap; }
     .search-area .search-box { flex: 1; max-width: 400px; }
+    .btn-edit-card {
+      position: absolute; top: 12px; right: 12px;
+      background: transparent; border: none; cursor: pointer;
+      color: var(--text-muted); font-size: 0.85rem; padding: 4px 6px;
+      border-radius: 4px; opacity: 0; transition: opacity var(--transition), background var(--transition);
+    }
+    .patient-card:hover .btn-edit-card { opacity: 1; }
+    .btn-edit-card:hover { background: var(--surface-2); color: var(--text); }
+    .badge-pyc { background: #EAF0FB; color: #3B62B0; border: 1px solid #C5D5F5; }
+    /* Import modal */
+    .import-preview { max-height: 260px; overflow-y: auto; margin-top: 12px; }
+    .import-preview table { font-size: 0.82rem; }
+    .import-note { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }
   </style>
 </head>
 <body>
   <div class="app-layout">
 
-    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-logo">
         <h1>🌿 Psico Agenda</h1>
         <p>Panel de organización</p>
       </div>
       <nav class="sidebar-nav">
-        <a href="calendar.html">
-          <span class="nav-icon">📅</span> Calendario
-        </a>
-        <a href="patients.html" class="active">
-          <span class="nav-icon">👥</span> Pacientes
-        </a>
+        <a href="calendar.html"><span class="nav-icon">📅</span> Calendario</a>
+        <a href="patients.html" class="active"><span class="nav-icon">👥</span> Pacientes</a>
       </nav>
       <div class="sidebar-footer">
-        <a href="#" id="logout-btn" style="color: var(--sidebar-muted); font-size:0.8rem;">Cerrar sesión</a>
+        <a href="#" id="logout-btn" style="color:var(--sidebar-muted);font-size:0.8rem;">Cerrar sesión</a>
       </div>
     </aside>
 
-    <!-- Main -->
     <div class="main-content">
       <header class="page-header">
         <h2>Pacientes</h2>
         <div class="page-header-actions">
+          <button class="btn btn-ghost" id="btn-import-excel">📥 Importar Excel</button>
           <button class="btn btn-primary" id="btn-new-patient">+ Nuevo paciente</button>
         </div>
       </header>
@@ -124,9 +97,7 @@
           <span id="patient-count" style="font-size:0.85rem;color:var(--text-muted);"></span>
         </div>
 
-        <div class="patients-grid" id="patients-grid">
-          <!-- Cards generados por JS -->
-        </div>
+        <div class="patients-grid" id="patients-grid"></div>
 
         <div class="empty-state" id="empty-state" style="display:none;">
           <div class="empty-icon">👥</div>
@@ -146,11 +117,9 @@
       </div>
       <div class="modal-body">
         <form id="patient-form" autocomplete="off">
-          <div class="form-row">
-            <div class="form-group" style="grid-column:1/-1;">
-              <label class="form-label" for="p-name">Nombre completo *</label>
-              <input type="text" id="p-name" class="form-control" placeholder="Ej: María González" required />
-            </div>
+          <div class="form-group">
+            <label class="form-label" for="p-name">Nombre completo *</label>
+            <input type="text" id="p-name" class="form-control" placeholder="Ej: María González" required />
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -163,12 +132,13 @@
                 <option value="">— Sin definir —</option>
                 <option value="weekly">Semanal</option>
                 <option value="biweekly">Quincenal</option>
+                <option value="on_demand">A demanda</option>
               </select>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label" for="p-price">Precio por sesión ($)</label>
+              <label class="form-label" for="p-price">Arancel por sesión ($)</label>
               <input type="number" id="p-price" class="form-control" placeholder="0" min="0" step="100" />
             </div>
             <div class="form-group">
@@ -184,21 +154,70 @@
             <label class="form-label" for="p-notes">Notas rápidas</label>
             <textarea id="p-notes" class="form-control" rows="2" placeholder="Observaciones generales..."></textarea>
           </div>
+          <div class="form-group" style="margin-top:4px;">
+            <label class="form-check">
+              <input type="checkbox" id="p-pyc" />
+              <span>Paciente PyC <span style="color:var(--text-muted);font-size:0.82rem;">(descuento 30% al grupo)</span></span>
+            </label>
+          </div>
           <input type="hidden" id="p-edit-id" value="" />
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-danger btn-sm" id="btn-delete-patient" style="margin-right:auto;display:none;">
-          Eliminar paciente
-        </button>
+        <button class="btn btn-danger btn-sm" id="btn-delete-patient" style="margin-right:auto;display:none;">Eliminar paciente</button>
         <button class="btn btn-ghost" id="btn-cancel-patient">Cancelar</button>
         <button class="btn btn-primary" id="btn-save-patient">Guardar</button>
       </div>
     </div>
   </div>
 
+  <!-- Modal: Importar Excel -->
+  <div class="modal-backdrop" id="import-modal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3>Importar pacientes desde Excel</h3>
+        <button class="modal-close" id="close-import-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.88rem;color:var(--text-muted);margin-bottom:16px;">
+          El archivo debe tener estas columnas (con encabezados):
+          <strong>Nombre · Apellido · Frecuencia · Arancel · PyC · Fecha de inicio</strong><br/>
+          <span style="font-size:0.8rem;">Frecuencia: <em>Semanal</em> o <em>Quincenal</em> · PyC: <em>Si</em> o vacío · Fecha: DD/MM/AAAA o AAAA-MM-DD</span>
+        </p>
+
+        <div id="import-upload-area" style="border:2px dashed var(--border);border-radius:var(--radius);padding:32px;text-align:center;cursor:pointer;" onclick="document.getElementById('excel-file-input').click()">
+          <div style="font-size:2rem;margin-bottom:8px;">📂</div>
+          <p style="font-size:0.9rem;color:var(--text-muted);">Hacé click para seleccionar el archivo <strong>.xlsx</strong> o <strong>.xls</strong></p>
+          <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" style="display:none;" />
+        </div>
+
+        <div id="import-preview-wrap" style="display:none;">
+          <p style="font-size:0.85rem;font-weight:600;margin-top:16px;">
+            Vista previa: <span id="import-count"></span>
+          </p>
+          <div class="import-preview table-wrapper">
+            <table id="import-preview-table">
+              <thead>
+                <tr>
+                  <th>Nombre</th><th>Frecuencia</th><th>Arancel</th><th>PyC</th><th>Inicio</th>
+                </tr>
+              </thead>
+              <tbody id="import-preview-body"></tbody>
+            </table>
+          </div>
+          <p class="import-note">Los pacientes con nombre duplicado serán ignorados.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-cancel-import">Cancelar</button>
+        <button class="btn btn-primary" id="btn-confirm-import" disabled>Importar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/patients.js"></script>
 </body>

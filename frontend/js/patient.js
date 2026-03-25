@@ -48,12 +48,19 @@ async function loadPatient() {
 }
 
 function renderPatientInfo() {
-  const freqLabel = patient.frequency === 'weekly' ? 'Semanal' : patient.frequency === 'biweekly' ? 'Quincenal' : '—';
+  const freqLabel = patient.frequency === 'weekly' ? 'Semanal' : patient.frequency === 'biweekly' ? 'Quincenal' : patient.frequency === 'on_demand' ? 'A demanda' : '—';
   document.getElementById('patient-info-grid').innerHTML = `
-    <div class="info-block"><div class="info-label">Nombre</div><div class="info-value">${escapeHtml(patient.name)}</div></div>
+    <div class="info-block">
+      <div class="info-label">Nombre</div>
+      <div class="info-value" style="display:flex;align-items:center;gap:8px;">
+        ${escapeHtml(patient.name)}
+        ${patient.pyc ? '<span class="badge" style="background:#EAF0FB;color:#3B62B0;border:1px solid #C5D5F5;font-size:0.72rem;">PyC</span>' : ''}
+      </div>
+    </div>
     <div class="info-block"><div class="info-label">Inicio tratamiento</div><div class="info-value">${patient.start_date ? formatDate(patient.start_date) : '—'}</div></div>
     <div class="info-block"><div class="info-label">Frecuencia</div><div class="info-value">${freqLabel}</div></div>
-    <div class="info-block"><div class="info-label">Precio sesión</div><div class="info-value">${formatMoney(patient.session_price)}</div></div>
+    <div class="info-block"><div class="info-label">Arancel</div><div class="info-value">${formatMoney(patient.session_price)}</div></div>
+    ${patient.pyc ? `<div class="info-block"><div class="info-label">Neto (70%)</div><div class="info-value" style="color:#3B62B0;">${formatMoney(patient.session_price * 0.7)}</div></div>` : ''}
     ${patient.phone ? `<div class="info-block"><div class="info-label">Teléfono</div><div class="info-value">${escapeHtml(patient.phone)}</div></div>` : ''}
     ${patient.email ? `<div class="info-block"><div class="info-label">Email</div><div class="info-value">${escapeHtml(patient.email)}</div></div>` : ''}
     ${patient.notes ? `<div class="info-block" style="grid-column:1/-1;"><div class="info-label">Notas</div><div class="info-value" style="font-weight:400;font-size:.88rem;">${escapeHtml(patient.notes)}</div></div>` : ''}
@@ -234,6 +241,11 @@ function renderMonthly(data) {
       <div class="month-stat"><span>Facturado</span><strong>${formatMoney(m.total_billed)}</strong></div>
       <div class="month-stat paid"><span>Cobrado</span><strong>${formatMoney(m.total_paid)}</strong></div>
       <div class="month-stat pending"><span>Pendiente</span><strong>${formatMoney(m.total_pending)}</strong></div>
+      ${patient?.pyc ? `
+      <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;">
+        <div class="month-stat" style="color:#3B62B0;"><span>Pago al grupo (30%)</span><strong style="color:#3B62B0;">- ${formatMoney(m.total_paid * 0.3)}</strong></div>
+        <div class="month-stat" style="font-weight:600;"><span>Neto final</span><strong>${formatMoney(m.total_paid * 0.7)}</strong></div>
+      </div>` : ''}
     </div>`).join('');
 }
 
@@ -247,6 +259,7 @@ function openEditModal() {
   document.getElementById('p-phone').value       = patient.phone || '';
   document.getElementById('p-email').value       = patient.email || '';
   document.getElementById('p-notes').value       = patient.notes || '';
+  document.getElementById('p-pyc').checked       = !!patient.pyc;
   const b = document.getElementById('patient-modal');
   b.style.display = 'flex';
   setTimeout(() => b.classList.add('visible'), 10);
@@ -267,6 +280,7 @@ async function savePatient() {
     phone:         document.getElementById('p-phone').value.trim() || null,
     email:         document.getElementById('p-email').value.trim() || null,
     notes:         document.getElementById('p-notes').value.trim() || null,
+    pyc:           document.getElementById('p-pyc').checked,
   };
   const btn = document.getElementById('btn-save-patient');
   btn.disabled = true;
