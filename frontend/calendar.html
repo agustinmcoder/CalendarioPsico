@@ -38,6 +38,9 @@
         <a href="patients.html">
           <span class="nav-icon">👥</span> Pacientes
         </a>
+        <a href="reports.html">
+          <span class="nav-icon">📊</span> Reportes
+        </a>
       </nav>
       <div class="sidebar-footer">
         <a href="#" id="logout-btn" style="color: var(--sidebar-muted); font-size:0.8rem;">Cerrar sesión</a>
@@ -49,9 +52,8 @@
       <header class="page-header">
         <h2 id="page-title">Calendario</h2>
         <div class="page-header-actions">
-          <button class="btn btn-primary" id="btn-new-event">
-            + Nueva sesión / evento
-          </button>
+          <button class="btn btn-ghost" id="btn-import-ics">📥 Importar Google Calendar</button>
+          <button class="btn btn-primary" id="btn-new-event">+ Nueva sesión / evento</button>
         </div>
       </header>
 
@@ -183,6 +185,46 @@
         </button>
         <button class="btn btn-ghost" id="btn-cancel-modal">Cancelar</button>
         <button class="btn btn-primary" id="btn-save-event">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Importar .ics -->
+  <div class="modal-backdrop" id="ics-modal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3>Importar desde Google Calendar</h3>
+        <button class="modal-close" id="close-ics-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">
+          En Google Calendar: <strong>Configuración ⚙ → Importar y exportar → Exportar</strong>. Te descarga un .zip — descomprimilo y subí el archivo <strong>.ics</strong> acá.
+        </p>
+        <div id="ics-upload-area" style="border:2px dashed var(--border);border-radius:var(--radius);padding:32px;text-align:center;cursor:pointer;" onclick="document.getElementById('ics-file-input').click()">
+          <div style="font-size:2rem;margin-bottom:8px;">📂</div>
+          <p style="font-size:0.9rem;color:var(--text-muted);">Hacé click para seleccionar el archivo <strong>.ics</strong></p>
+          <input type="file" id="ics-file-input" accept=".ics" style="display:none;" />
+        </div>
+        <div id="ics-preview-wrap" style="display:none;margin-top:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:0.88rem;font-weight:600;" id="ics-count"></span>
+            <label class="form-check" style="font-size:0.83rem;">
+              <input type="checkbox" id="ics-skip-past" checked />
+              <span>Ignorar eventos pasados</span>
+            </label>
+          </div>
+          <div class="table-wrapper" style="max-height:280px;overflow-y:auto;">
+            <table>
+              <thead><tr><th>Evento</th><th>Fecha</th><th>Hora</th><th>Duración</th></tr></thead>
+              <tbody id="ics-preview-body"></tbody>
+            </table>
+          </div>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin-top:8px;">Se importan como eventos personales. Podés vincularlos a pacientes después.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="btn-cancel-ics">Cancelar</button>
+        <button class="btn btn-primary" id="btn-confirm-ics" disabled>Importar</button>
       </div>
     </div>
   </div>

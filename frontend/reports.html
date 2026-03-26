@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Psico Agenda — Reportes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .month-selector {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .month-selector select { width: auto; }
+
+    /* KPI grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+    }
+    .kpi-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+    .kpi-delta {
+      font-size: 0.78rem;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .kpi-delta.up   { color: var(--success); }
+    .kpi-delta.down { color: var(--danger); }
+    .kpi-delta.same { color: var(--text-muted); }
+
+    /* Sección PyC */
+    .pyc-section {
+      background: #EAF0FB;
+      border: 1px solid #C5D5F5;
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 28px;
+    }
+    .pyc-section h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #3B62B0;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pyc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .pyc-stat { }
+    .pyc-stat .stat-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #3B62B0; opacity: 0.7; }
+    .pyc-stat .stat-value { font-size: 1.2rem; font-weight: 700; color: #3B62B0; }
+
+    /* Pacientes section */
+    .section-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 700px) { .section-grid { grid-template-columns: 1fr; } }
+
+    .patient-list-report {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .patient-list-report li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.88rem;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+    .patient-list-report li:last-child { border-bottom: none; }
+    .empty-list { font-size: 0.85rem; color: var(--text-muted); padding: 16px 0; text-align: center; }
+
+    /* Gráfico */
+    .chart-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 28px;
+    }
+    .chart-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      height: 160px;
+    }
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .bar-amount { font-size: 0.68rem; color: var(--text-muted); text-align: center; }
+    .bar-fill {
+      width: 100%;
+      background: var(--primary-light);
+      border-radius: 4px 4px 0 0;
+      min-height: 4px;
+      transition: height 0.4s ease;
+      position: relative;
+    }
+    .bar-fill.current { background: var(--primary); }
+    .bar-label { font-size: 0.72rem; color: var(--text-muted); text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <h1>🌿 Psico Agenda</h1>
+        <p>Panel de organización</p>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="calendar.html"><span class="nav-icon">📅</span> Calendario</a>
+        <a href="patients.html"><span class="nav-icon">👥</span> Pacientes</a>
+        <a href="reports.html" class="active"><span class="nav-icon">📊</span> Reportes</a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="#" id="logout-btn" style="color:var(--sidebar-muted);font-size:0.8rem;">Cerrar sesión</a>
+      </div>
+    </aside>
+
+    <div class="main-content">
+      <header class="page-header">
+        <h2>Reportes</h2>
+        <div class="page-header-actions month-selector">
+          <select id="month-select" class="form-control"></select>
+        </div>
+      </header>
+
+      <div class="page-body" id="report-body">
+        <div style="text-align:center;padding:60px;color:var(--text-muted);">
+          <span class="spinner"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/reports.js"></script>
+</body>
+</html>

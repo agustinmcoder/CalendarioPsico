@@ -316,4 +316,156 @@ function setupListeners() {
   document.getElementById('is-recurring').addEventListener('change', (e) => {
     document.getElementById('recurrence-options').classList.toggle('visible', e.target.checked);
   });
+
+  // ICS import listeners
+  document.getElementById('btn-import-ics').addEventListener('click', showIcsModal);
+  document.getElementById('close-ics-modal').addEventListener('click', hideIcsModal);
+  document.getElementById('btn-cancel-ics').addEventListener('click', hideIcsModal);
+  document.getElementById('ics-modal').addEventListener('click', (e) => { if (e.target === e.currentTarget) hideIcsModal(); });
+  document.getElementById('ics-file-input').addEventListener('change', handleIcsFile);
+  document.getElementById('ics-skip-past').addEventListener('change', renderIcsPreview);
+  document.getElementById('btn-confirm-ics').addEventListener('click', confirmIcsImport);
+}
+
+// ===== ICS Import =====
+let parsedIcsEvents = [];
+
+function showIcsModal() {
+  parsedIcsEvents = [];
+  document.getElementById('ics-file-input').value = '';
+  document.getElementById('ics-preview-wrap').style.display = 'none';
+  document.getElementById('btn-confirm-ics').disabled = true;
+  const b = document.getElementById('ics-modal');
+  b.style.display = 'flex';
+  setTimeout(() => b.classList.add('visible'), 10);
+}
+
+function hideIcsModal() {
+  const b = document.getElementById('ics-modal');
+  b.classList.remove('visible');
+  setTimeout(() => { b.style.display = 'none'; }, 200);
+}
+
+async function handleIcsFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  parsedIcsEvents = parseIcs(text);
+  renderIcsPreview();
+}
+
+function parseIcs(text) {
+  const events = [];
+  const blocks = text.split('BEGIN:VEVENT');
+  blocks.shift(); // quitar cabecera
+
+  for (const block of blocks) {
+    const get = (key) => {
+      const regex = new RegExp(`${key}[^:]*:(.+)`, 'i');
+      const match = block.match(regex);
+      return match ? match[1].replace(/\r/g, '').trim() : '';
+    };
+
+    const title   = get('SUMMARY') || 'Sin título';
+    const dtStart = get('DTSTART');
+    const dtEnd   = get('DTEND') || get('DTSTART');
+    const status  = get('STATUS');
+
+    if (!dtStart || status === 'CANCELLED') continue;
+
+    const start = parseIcsDate(dtStart);
+    const end   = parseIcsDate(dtEnd);
+    if (!start || !end) continue;
+
+    // Si el fin es igual al inicio, agregar 1 hora
+    if (end.getTime() === start.getTime()) end.setHours(end.getHours() + 1);
+
+    events.push({ title, start, end });
+  }
+
+  // Ordenar por fecha
+  return events.sort((a, b) => a.start - b.start);
+}
+
+function parseIcsDate(str) {
+  if (!str) return null;
+  // Formato: 20240115T100000Z o 20240115T100000 o 20240115 (all-day)
+  const clean = str.replace(/[^0-9T]/g, '');
+  try {
+    if (clean.length === 8) {
+      // All-day: YYYYMMDD → usar mediodía local
+      return new Date(`${clean.slice(0,4)}-${clean.slice(4,6)}-${clean.slice(6,8)}T12:00:00`);
+    }
+    // Con hora: YYYYMMDDTHHMMSS
+    const d = clean.replace(/T/, '');
+    return new Date(
+      `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}T${d.slice(8,10)}:${d.slice(10,12)}:${d.slice(12,14)}${str.endsWith('Z') ? 'Z' : ''}`
+    );
+  } catch { return null; }
+}
+
+function renderIcsPreview() {
+  const skipPast = document.getElementById('ics-skip-past').checked;
+  const now      = new Date();
+  const filtered = skipPast ? parsedIcsEvents.filter(e => e.start >= now) : parsedIcsEvents;
+
+  const tbody = document.getElementById('ics-preview-body');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px;">No se encontraron eventos${skipPast ? ' futuros' : ''}.</td></tr>`;
+    document.getElementById('ics-count').textContent = '0 eventos';
+    document.getElementById('btn-confirm-ics').disabled = true;
+    document.getElementById('ics-preview-wrap').style.display = '';
+    return;
+  }
+
+  const durMin = (s, e) => {
+    const m = Math.round((e - s) / 60000);
+    return m < 60 ? `${m}min` : `${Math.floor(m/60)}h${m%60 ? ` ${m%60}min` : ''}`;
+  };
+
+  tbody.innerHTML = filtered.map(ev => `
+    <tr>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(ev.title)}</td>
+      <td>${formatDate(ev.start)}</td>
+      <td>${formatTime(ev.start)} – ${formatTime(ev.end)}</td>
+      <td>${durMin(ev.start, ev.end)}</td>
+    </tr>`).join('');
+
+  document.getElementById('ics-count').textContent = `${filtered.length} evento${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`;
+  document.getElementById('btn-confirm-ics').disabled = false;
+  document.getElementById('ics-preview-wrap').style.display = '';
+}
+
+async function confirmIcsImport() {
+  const skipPast = document.getElementById('ics-skip-past').checked;
+  const now      = new Date();
+  const toImport = skipPast ? parsedIcsEvents.filter(e => e.start >= now) : parsedIcsEvents;
+  if (!toImport.length) return;
+
+  const btn = document.getElementById('btn-confirm-ics');
+  btn.disabled = true;
+  btn.textContent = 'Importando...';
+
+  try {
+    const sessions = toImport.map(ev => ({
+      title:          ev.title,
+      start_datetime: ev.start.toISOString(),
+      end_datetime:   ev.end.toISOString(),
+      is_personal:    true,
+      is_recurring:   false,
+      status:         'scheduled',
+    }));
+
+    const { error } = await db.from('sessions').insert(sessions);
+    if (error) throw error;
+
+    showToast(`${sessions.length} evento${sessions.length !== 1 ? 's' : ''} importado${sessions.length !== 1 ? 's' : ''}`, 'success');
+    hideIcsModal();
+    calendar.refetchEvents();
+  } catch (err) {
+    showToast(err.message || 'Error al importar', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Importar';
+  }
 }

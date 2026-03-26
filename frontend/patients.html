@@ -47,6 +47,7 @@
     .patient-stat.pending .stat-value { color: var(--danger); }
     .search-area { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; flex-wrap: wrap; }
     .search-area .search-box { flex: 1; max-width: 400px; }
+    .active-filter { background: var(--primary) !important; color: white !important; border-color: var(--primary) !important; }
     .btn-edit-card {
       position: absolute; top: 12px; right: 12px;
       background: transparent; border: none; cursor: pointer;
@@ -73,6 +74,7 @@
       <nav class="sidebar-nav">
         <a href="calendar.html"><span class="nav-icon">📅</span> Calendario</a>
         <a href="patients.html" class="active"><span class="nav-icon">👥</span> Pacientes</a>
+        <a href="reports.html"><span class="nav-icon">📊</span> Reportes</a>
       </nav>
       <div class="sidebar-footer">
         <a href="#" id="logout-btn" style="color:var(--sidebar-muted);font-size:0.8rem;">Cerrar sesión</a>
@@ -93,6 +95,11 @@
           <div class="search-box">
             <span class="search-icon">🔍</span>
             <input type="text" id="search-input" class="form-control" placeholder="Buscar paciente..." />
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm active-filter" data-filter="all"   id="filter-all">Todos</button>
+            <button class="btn btn-sm"               data-filter="pyc"   id="filter-pyc">PyC</button>
+            <button class="btn btn-sm"               data-filter="nopyc" id="filter-nopyc">Sin PyC</button>
           </div>
           <span id="patient-count" style="font-size:0.85rem;color:var(--text-muted);"></span>
         </div>

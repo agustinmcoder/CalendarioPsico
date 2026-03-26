@@ -57,11 +57,6 @@ function renderPatients(list) {
             <div class="stat-value">${formatMoney(p.session_price)}</div>
             <div class="stat-label">Arancel</div>
           </div>
-          ${p.pyc ? `
-          <div class="patient-stat">
-            <div class="stat-value" style="color:#3B62B0;">${formatMoney(p.session_price * 0.7)}</div>
-            <div class="stat-label">Neto (70%)</div>
-          </div>` : ''}
           <div class="patient-stat ${pending > 0 ? 'pending' : ''}">
             <div class="stat-value">${formatMoney(pending)}</div>
             <div class="stat-label">Pendiente</div>
@@ -71,10 +66,27 @@ function renderPatients(list) {
   }).join('');
 }
 
-// ===== Búsqueda =====
-document.getElementById('search-input').addEventListener('input', (e) => {
-  const q = e.target.value.toLowerCase().trim();
-  renderPatients(q ? allPatients.filter(p => p.name.toLowerCase().includes(q)) : allPatients);
+// ===== Búsqueda y filtros =====
+let activeFilter = 'all';
+
+function applyFilters() {
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  let list = allPatients;
+  if (activeFilter === 'pyc')   list = list.filter(p => p.pyc);
+  if (activeFilter === 'nopyc') list = list.filter(p => !p.pyc);
+  if (q) list = list.filter(p => p.name.toLowerCase().includes(q));
+  renderPatients(list);
+}
+
+document.getElementById('search-input').addEventListener('input', applyFilters);
+
+document.querySelectorAll('[data-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeFilter = btn.dataset.filter;
+    document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active-filter'));
+    btn.classList.add('active-filter');
+    applyFilters();
+  });
 });
 
 // ===== Modal nuevo/editar =====
